@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crea el Número Objetivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .digit-input {
+            width: 100%;
+            height: 4rem;
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            border: 2px solid #d1d5db;
+            transition: border-color 0.3s;
+            background-color: #e5e7eb; 
+            cursor: default; 
+        }
+        .digit-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+        }
+        /* Estilo para los mensajes de resultado */
+        #message-box {
+            min-height: 4rem;
+        }
+        .op-button {
+            padding: 0.5rem 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            border-radius: 0.5rem;
+            transition: background-color 0.15s;
+        }
+        .stat-box {
+            background-color: #e0f2f1; /* Teal 50 */
+            color: #0d9488; /* Teal 700 */
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="app" class="card bg-white p-6 md:p-8 rounded-xl w-full max-w-md">
+        <!-- Título y Objetivo -->
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Crea el Número Objetivo</h1>
+        <!-- CAMBIO: Nuevo texto de la regla -->
+        <p class="text-sm text-center text-gray-500 mb-6">Usa los 4 dígitos para obtener el número objetivo.</p>
+
+        <!-- Estadísticas del Juego -->
+        <div class="flex justify-between mb-6 space-x-3">
+            <div class="stat-box w-1/2">
+                Intentos: <span id="attempt-count" class="font-extrabold">0</span>
+            </div>
+            <div class="stat-box w-1/2">
+                Resueltos: <span id="solved-count" class="font-extrabold">0</span>
+            </div>
+        </div>
+        
+        <!-- Selector de Dificultad -->
+        <div class="mb-4">
+            <label for="difficulty-select" class="block text-sm font-medium text-gray-700 mb-1">Nivel de Dificultad:</label>
+            <select id="difficulty-select" class="w-full p-3 border border-gray-300 rounded-lg text-lg bg-white focus:ring-blue-500 focus:border-blue-500">
+                <option value="easy">Fácil (Solo + y -)</option>
+                <option value="medium">Intermedio (+, -, y ×)</option>
+                <option value="hard" selected>Difícil (+, -, ×, y ÷)</option>
+            </select>
+            <!-- CAMBIO: Se elimina la frase trivial sobre la división en modo Difícil. -->
+            <p class="text-xs text-gray-500 mt-1"></p>
+        </div>
+
+        <!-- Número Objetivo -->
+        <div class="mb-6 bg-indigo-500 p-4 rounded-lg text-white text-center">
+            <h2 class="text-xl font-medium">OBJETIVO:</h2>
+            <p id="target-number" class="text-5xl font-extrabold mt-1">--</p>
+        </div>
+
+        <!-- Inputs de Dígitos -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Dígitos disponibles (Clic para usar):</label>
+            <div class="flex space-x-3">
+                <input type="text" id="digit-1" class="digit-input rounded-lg" value="2" readonly onclick="insertToFormula(this.value)">
+                <input type="text" id="digit-2" class="digit-input rounded-lg" value="5" readonly onclick="insertToFormula(this.value)">
+                <input type="text" id="digit-3" class="digit-input rounded-lg" value="8" readonly onclick="insertToFormula(this.value)">
+                <input type="text" id="digit-4" class="digit-input rounded-lg" value="0" readonly onclick="insertToFormula(this.value)">
+            </div>
+        </div>
+
+        <!-- Input de Fórmula -->
+        <div class="mb-6">
+            <label for="formula" class="block text-sm font-medium text-gray-700 mb-2">Escribe tu fórmula:</label>
+            <input type="text" id="formula-input" placeholder="Ej: (2 * 5) + 8" class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:ring-blue-500 focus:border-blue-500" />
+            <p class="text-xs text-gray-500 mt-1">Usa los 4 dígitos de arriba, operaciones permitidas en el nivel actual, y paréntesis.</p>
+        </div>
+        
+        <!-- Controles de Operadores -->
+        <div class="flex justify-between mb-6 space-x-2">
+            <!-- Botones de Operadores -->
+            <button class="op-button bg-gray-200 hover:bg-gray-300 text-gray-800 flex-grow" onclick="insertToFormula('+')">+</button>
+            <button class="op-button bg-gray-200 hover:bg-gray-300 text-gray-800 flex-grow" onclick="insertToFormula('-')">-</button>
+            <button class="op-button bg-gray-200 hover:bg-gray-300 text-gray-800 flex-grow" onclick="insertToFormula('*')">×</button>
+            <button class="op-button bg-gray-200 hover:bg-gray-300 text-gray-800 flex-grow" onclick="insertToFormula('/')">÷</button>
+            <button class="op-button bg-gray-200 hover:bg-gray-300 text-gray-800 flex-grow" onclick="insertToFormula('(')">(</button>
+            <button class="op-button bg-gray-200 hover:bg-gray-300 text-gray-800 flex-grow" onclick="insertToFormula(')')">)</button>
+            <!-- Botón de Borrar (C) -->
+            <button class="op-button bg-red-500 hover:bg-red-600 text-white px-4" onclick="deleteLastChar()">
+                C
+            </button>
+        </div>
+
+        <!-- Botones y Mensaje -->
+        <div class="flex flex-col space-y-3">
+            <button id="check-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-150 ease-in-out">
+                Comprobar Resultado
+            </button>
+            <button id="show-solution-button" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition duration-150 ease-in-out">
+                Mostrar Solución
+            </button>
+            <button id="new-game-button" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-lg transition duration-150 ease-in-out">
+                Nuevo Desafío
+            </button>
+        </div>
+
+        <!-- Mensaje de Resultado -->
+        <div id="message-box" class="mt-6 p-3 rounded-lg text-center font-semibold transition-all duration-300">
+            <!-- Aquí aparecerán los mensajes (Éxito, Error, etc.) -->
+        </div>
+    </div>
+
+    <script>
+        // Variables globales y configuración de niveles
+        let targetNumber;
+        // Copyright (C) JC+IA - Para Ari
+        let currentDifficulty = 'hard';
+        let attemptsCurrentChallenge = 0; // Contador de intentos por desafío
+        let totalChallengesSolved = 0;    // Contador total de desafíos resueltos
+        let isSolved = false;             // Bandera para saber si el desafío actual ha sido resuelto
+        
+        const LEVEL_OPERATORS = {
+            'easy': ['+', '-'],
+            'medium': ['+', '-', '*'],
+            'hard': ['+', '-', '*', '/']
+        };
+
+        const digitInputs = [
+            document.getElementById('digit-1'),
+            document.getElementById('digit-2'),
+            document.getElementById('digit-3'),
+            document.getElementById('digit-4')
+        ];
+        const formulaInput = document.getElementById('formula-input');
+        const targetNumberDisplay = document.getElementById('target-number');
+        const messageBox = document.getElementById('message-box');
+        const checkButton = document.getElementById('check-button');
+        const showSolutionButton = document.getElementById('show-solution-button');
+        const difficultySelect = document.getElementById('difficulty-select');
+
+        // Elementos de estadísticas
+        const attemptCountDisplay = document.getElementById('attempt-count');
+        const solvedCountDisplay = document.getElementById('solved-count');
+        
+        // --- Funciones de Usabilidad ---
+
+        /**
+         * Inserta un carácter en la posición actual del cursor en el input de fórmula.
+         */
+        function insertToFormula(char) {
+            const input = formulaInput;
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const value = input.value;
+
+            input.value = value.substring(0, start) + char + value.substring(end);
+            
+            // Mover el cursor después del carácter insertado
+            input.focus();
+            input.selectionStart = input.selectionEnd = start + char.length;
+        }
+
+        /**
+         * Borra el último carácter del input de fórmula.
+         */
+        function deleteLastChar() {
+            formulaInput.value = formulaInput.value.slice(0, -1);
+            formulaInput.focus();
+        }
+
+        /**
+         * Actualiza los contadores en la interfaz
+         */
+        function updateStatsDisplay() {
+            attemptCountDisplay.textContent = attemptsCurrentChallenge;
+            solvedCountDisplay.textContent = totalChallengesSolved;
+        }
+
+        // --- Funciones del Juego ---
+
+        /**
+         * Muestra un mensaje temporal en la caja de mensajes.
+         */
+        function displayMessage(text, className) {
+            messageBox.textContent = text;
+            messageBox.className = 'mt-6 p-3 rounded-lg text-center font-semibold transition-all duration-300 ' + className;
+        }
+
+        /**
+         * Genera un array de 4 dígitos aleatorios (0-9).
+         */
+        function generateRandomDigits() {
+             return Array(4).fill(0).map(() => Math.floor(Math.random() * 10));
+        }
+
+        /**
+         * Obtiene los dígitos actualmente en los inputs (que ahora son de solo lectura).
+         * @returns {number[]} Array de dígitos válidos (4).
+         */
+        function getUsedDigits() {
+            return digitInputs
+                .map(input => {
+                    const value = parseInt(input.value);
+                    return isNaN(value) ? null : value;
+                })
+                .filter(digit => digit !== null);
+        }
+
+        /**
+         * Genera todas las permutaciones de los dígitos dados.
+         */
+        function getPermutations(arr) {
+            if (arr.length === 1) return [arr];
+            const result = [];
+            arr.forEach((item, i) => {
+                const remaining = arr.slice(0, i).concat(arr.slice(i + 1));
+                const subPermutations = getPermutations(remaining);
+                subPermutations.forEach(sub => {
+                    result.push([item].concat(sub));
+                });
+            });
+            return result;
+        }
+
+        /**
+         * Valida que la fórmula del usuario sea sintácticamente correcta y use los dígitos/operadores permitidos.
+         */
+        function validateFormula(formula, allowedDigits) {
+            // 1. Verificar si hay concatenación de dígitos (ej: '12')
+            const numbersUsed = formula.match(/\d+/g);
+            if (numbersUsed) {
+                for (const numStr of numbersUsed) {
+                    if (numStr.length > 1) {
+                        return { valid: false, reason: 'CONCATENATION' };
+                    }
+                }
+            }
+
+            // 2. Verificar el uso de operadores no permitidos
+            const allowedOperators = LEVEL_OPERATORS[currentDifficulty];
+            const opRegex = /[+\-*/]/g;
+            const formulaOperators = formula.match(opRegex) || [];
+            for (const op of formulaOperators) {
+                if (!allowedOperators.includes(op)) {
+                    return { valid: false, reason: op }; // Devuelve el operador no válido
+                }
+            }
+
+            // 3. Verificar el uso de dígitos (AHORA DEBE USAR EXACTAMENTE 4)
+            const formulaDigits = numbersUsed ? numbersUsed.map(Number) : [];
+            
+            if (formulaDigits.length !== 4) { // CAMBIO: Forzar el uso de 4 dígitos
+                return { valid: false, reason: 'DIGIT_COUNT_4_REQUIRED' };
+            }
+
+            // Contar la disponibilidad de dígitos
+            const allowedCounts = {};
+            allowedDigits.forEach(d => allowedCounts[d] = (allowedCounts[d] || 0) + 1);
+            
+            // Contar el uso de dígitos en la fórmula
+            const usedCounts = {};
+            formulaDigits.forEach(d => usedCounts[d] = (usedCounts[d] || 0) + 1);
+
+            for (const digit in usedCounts) {
+                if (usedCounts[digit] > (allowedCounts[digit] || 0)) {
+                    return { valid: false, reason: 'DIGIT_MISMATCH' };
+                }
+            }
+
+            return { valid: true };
+        }
+
+
+        /**
+         * Función de evaluación estricta para el modo HARD.
+         */
+        function solveEvaluate(formula) {
+            try {
+                // Validación básica de caracteres
+                const validCharacters = /^[\d\s\+\-\*\/\(\)\.]+$/;
+                if (!validCharacters.test(formula)) return null;
+
+                // Si no estamos en HARD o no hay división, usamos eval simple
+                if (currentDifficulty !== 'hard' || !formula.includes('/')) {
+                    const result = new Function('return ' + formula)();
+                    if (typeof result !== 'number' || !isFinite(result) || result < 0) return null;
+                    // Redondeamos el resultado, pero en este juego solo deberían ser enteros
+                    return Math.round(result);
+                }
+                
+                // --- Lógica estricta de división para modo HARD ---
+                
+                // Primera evaluación simple para obtener el resultado
+                const tempResult = new Function('return ' + formula)();
+                
+                // Si el resultado simple es decimal, verificamos divisiones simples A/B
+                if (!Number.isInteger(tempResult)) {
+                    // Nota: Esta verificación es una simplificación. La validación estricta de la regla de la división
+                    // debe garantizar que CADA PASO DE LA DIVISIÓN resulte en un entero, no solo el resultado final.
+                    // Para los propósitos de este juego, nos enfocamos en el resultado final entero positivo.
+                    // Si el usuario usa números que causan decimales intermedios pero el resultado es entero (ej: (1/2)*4 = 2),
+                    // el juego lo permite por simplicidad de la implementación de `solveEvaluate`.
+                    
+                    // Solo si el resultado final NO es un entero, lo marcamos como inválido.
+                    return null; 
+                }
+                
+                // El resultado final debe ser un entero positivo y finito
+                if (typeof tempResult !== 'number' || !isFinite(tempResult) || tempResult < 0) return null;
+
+                return tempResult; 
+
+            } catch (error) {
+                // Cualquier error de evaluación o división por cero
+                return null;
+            }
+        }
+
+
+        /**
+         * Busca una solución simple y válida para el objetivo con los dígitos dados.
+         * @param {number[]} digits - Los dígitos disponibles.
+         * @param {number | null} target - El número objetivo, o null para encontrar cualquier solución.
+         * @param {string | null} requiredOp - El operador que debe usarse en la solución ('-', '*', '/').
+         * @returns {{formula: string, result: number} | null} La fórmula de la solución o null.
+         */
+        function solve(digits, target = null, requiredOp = null) {
+            // CAMBIO: Forzar a que solo se busquen soluciones de 4 dígitos
+            if (digits.length !== 4) return null; 
+
+            const currentOperators = LEVEL_OPERATORS[currentDifficulty];
+            const permutations = getPermutations(digits);
+            
+            for (const perm of permutations) {
+                let formula;
+                let result;
+
+                // Caso: Cuatro dígitos (a, b, c, d)
+                const [a, b, c, d] = perm;
+                
+                for (const op1 of currentOperators) {
+                    for (const op2 of currentOperators) {
+                        for (const op3 of currentOperators) {
+                            
+                            // Comprobar la restricción del operador requerido
+                            if (requiredOp && ![op1, op2, op3].includes(requiredOp)) {
+                                continue;
+                            }
+
+                            // Estructura A: ((a op1 b) op2 c) op3 d
+                            formula = `((${a} ${op1} ${b}) ${op2} ${c}) ${op3} ${d}`;
+                            result = solveEvaluate(formula);
+                            if (result !== null && result > 0 && result <= 100) {
+                                 if (target === null || result === target) return { formula: formula, result: result };
+                            }
+
+                            // Estructura B: (a op1 b) op2 (c op3 d)
+                            formula = `(${a} ${op1} ${b}) ${op2} (${c} ${op3} ${d})`;
+                            result = solveEvaluate(formula);
+                            if (result !== null && result > 0 && result <= 100) {
+                                 if (target === null || result === target) return { formula: formula, result: result };
+                            }
+
+                            // Estructura C: a op1 (b op2 (c op3 d))
+                            formula = `${a} ${op1} (${b} ${op2} (${c} ${op3} ${d}))`;
+                            result = solveEvaluate(formula);
+                            if (result !== null && result > 0 && result <= 100) {
+                                 if (target === null || result === target) return { formula: formula, result: result };
+                            }
+                        }
+                    }
+                }
+            }
+
+            return null; 
+        }
+
+        /**
+         * Genera un nuevo desafío garantizando que es soluble.
+         */
+        function generateNewTarget() {
+            let solution = null;
+            let attempts = 0;
+            const MAX_ATTEMPTS = 100;
+            let requiredOp = null;
+
+            currentDifficulty = difficultySelect.value;
+            
+            // Reiniciar contadores para el nuevo desafío
+            attemptsCurrentChallenge = 0;
+            isSolved = false;
+            updateStatsDisplay();
+
+            // Lógica para forzar el uso de un operador basado en la dificultad
+            if (currentDifficulty === 'easy') {
+                requiredOp = '-'; // Forzar la resta
+            } else if (currentDifficulty === 'medium') {
+                requiredOp = '*';
+            } else if (currentDifficulty === 'hard') {
+                requiredOp = '/';
+            }
+
+            // Busca una combinación de 4 dígitos que tenga al menos 1 solución
+            while (solution === null && attempts < MAX_ATTEMPTS) {
+                const digits = generateRandomDigits();
+                // Usa requiredOp en la función solve
+                solution = solve(digits, null, requiredOp); 
+                
+                if (solution) {
+                    targetNumber = solution.result;
+                    targetNumberDisplay.textContent = targetNumber;
+                    
+                    // Asignar los dígitos que generaron la solución a los inputs de la interfaz
+                    digits.forEach((d, i) => {
+                        if (digitInputs[i]) {
+                            digitInputs[i].value = d;
+                        }
+                    });
+
+                    // Limpiar la caja de entrada y mensajes
+                    formulaInput.value = '';
+                    displayMessage(`¡Nuevo desafío generado con éxito! Objetivo: ${targetNumber}.`, 'bg-gray-100 text-gray-700');
+                    return;
+
+                }
+                attempts++;
+            }
+            
+            // Si después de muchos intentos no encuentra, relaja la restricción para que el juego no se rompa
+             if (solution === null) {
+                solution = solve(generateRandomDigits(), null, null); // Busca cualquier solución
+                if(solution) {
+                    targetNumber = solution.result;
+                    targetNumberDisplay.textContent = targetNumber;
+                    
+                    let warningMsg = "Advertencia: No se pudo generar un desafío con el operador requerido, pero se generó un desafío soluble alternativo.";
+                    if (currentDifficulty === 'easy' && requiredOp === '-') {
+                        warningMsg = "Advertencia: No se pudo garantizar una resta, pero se generó un desafío fácil soluble.";
+                    }
+
+                     displayMessage(warningMsg, 'bg-yellow-200 text-yellow-900');
+                } else {
+                     displayMessage("Error al generar un desafío soluble. Intenta recargar.", 'bg-red-200 text-red-900');
+                }
+            }
+        }
+
+
+        /**
+         * Muestra la solución simple encontrada por el algoritmo.
+         */
+        function showSolution() {
+             const digits = getUsedDigits();
+            
+            if (digits.length !== 4) {
+                displayMessage("Asegúrate de que los 4 dígitos estén cargados.", 'bg-yellow-100 text-yellow-800');
+                return;
+            }
+
+            if (isSolved) {
+                 displayMessage("Este desafío ya está resuelto, ¡pero aquí tienes una solución si quieres compararla!", 'bg-green-100 text-green-800');
+            }
+            
+            showSolutionButton.disabled = true;
+            showSolutionButton.textContent = 'Buscando...';
+
+            setTimeout(() => {
+                 // Usar la función solve para el target específico sin forzar operador
+                const solution = solve(digits, targetNumber, null); 
+
+                showSolutionButton.disabled = false;
+                showSolutionButton.textContent = 'Mostrar Solución';
+
+                if (solution) {
+                     const displayFormula = solution.formula.replace(/\*/g, '×').replace(/\//g, '÷');
+                    displayMessage(`¡Aquí tienes! Una solución es: ${displayFormula} = ${targetNumber}.`, 'bg-orange-100 text-orange-800');
+                    formulaInput.value = solution.formula;
+                } else {
+                    displayMessage("Error: No se pudo encontrar una solución simple para este desafío. ¡Debería ser soluble!", 'bg-red-100 text-red-800');
+                }
+            }, 50);
+        }
+
+        /**
+         * Lógica principal de comprobación.
+         */
+        function checkSolution() {
+            if (isSolved) {
+                displayMessage("¡Ya resolviste este desafío! Haz clic en 'Nuevo Desafío'.", 'bg-yellow-100 text-yellow-800');
+                return;
+            }
+            
+            const formula = formulaInput.value.trim();
+            const allowedDigits = getUsedDigits();
+
+            // 1. Verificar si se han ingresado los 4 dígitos
+            if (allowedDigits.length !== 4) {
+                displayMessage("Deben estar los 4 dígitos disponibles para jugar.", 'bg-yellow-100 text-yellow-800');
+                return;
+            }
+
+            // Incrementamos el contador de intentos
+            attemptsCurrentChallenge++;
+            updateStatsDisplay();
+
+            // 2. Validar que la fórmula use solo los dígitos y las operaciones permitidas
+            const validation = validateFormula(formula, allowedDigits);
+
+            if (!validation.valid) {
+                let errorMsg = "Error en la fórmula.";
+                
+                if (validation.reason === 'CONCATENATION') {
+                    errorMsg = "¡Error de Concatenación! No puedes combinar dígitos (ej: no uses '13'). Debes usarlos individualmente.";
+                } else if (['+', '-', '*', '/'].includes(validation.reason)) {
+                     const opMap = { '+': 'Suma', '-': 'Resta', '*': 'Multiplicación', '/': 'División' };
+                     const allowedOperatorsDisplay = LEVEL_OPERATORS[currentDifficulty].map(op => (op === '*' ? '×' : (op === '/' ? '÷' : op))).join(', ');
+                     errorMsg = `Error: La operación "${opMap[validation.reason]} (${validation.reason})" no está permitida en el nivel actual. Solo puedes usar: ${allowedOperatorsDisplay}.`;
+                } else if (validation.reason === 'DIGIT_MISMATCH') {
+                     errorMsg = "Error: Estás usando un dígito que no está en el conjunto disponible o lo usaste más de una vez.";
+                } else if (validation.reason === 'DIGIT_COUNT_4_REQUIRED') { // CAMBIO: Nuevo mensaje
+                    errorMsg = "Error: Debes usar exactamente los 4 dígitos disponibles en la fórmula.";
+                } else {
+                    errorMsg = "Error: La fórmula es inválida o contiene caracteres no permitidos.";
+                }
+
+                displayMessage(errorMsg, 'bg-red-100 text-red-800');
+                return;
+            }
+
+            // 3. Evaluar la fórmula usando la lógica estricta (solveEvaluate)
+            const result = solveEvaluate(formula); 
+
+            if (result === null) {
+                let msg = "Error: Fórmula mal escrita, inválida o el resultado final no es un número entero positivo.";
+                
+                // Si estamos en HARD, especificamos la regla de división
+                if (currentDifficulty === 'hard' && formula.includes('/') && !Number.isInteger(result)) {
+                    msg = "Error: El resultado de la fórmula no es un número entero positivo. (Recuerda que en Difícil, la división debe dar un entero).";
+                }
+                
+                displayMessage(msg, 'bg-red-100 text-red-800');
+                return;
+            }
+
+            // 4. Comprobar el resultado
+            if (result === targetNumber) {
+                // Éxito 
+                isSolved = true;
+                totalChallengesSolved++;
+                updateStatsDisplay();
+
+                displayMessage(`¡ÉXITO! ${formula} = ${targetNumber}. ¡Perfecto! Resuelto en ${attemptsCurrentChallenge} intentos.`, 'bg-green-100 text-green-800');
+                checkButton.disabled = true; // Deshabilitar hasta el próximo juego
+            } else {
+                displayMessage(`Incorrecto. ${formula} = ${result}. El objetivo es ${targetNumber}.`, 'bg-red-100 text-red-800');
+            }
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            generateNewTarget(); // Inicializar el juego al cargar la página
+        });
+
+        checkButton.addEventListener('click', checkSolution);
+        
+        document.getElementById('new-game-button').addEventListener('click', () => {
+             checkButton.disabled = false; // Habilitar el botón de comprobar
+             generateNewTarget();
+        });
+        
+        showSolutionButton.addEventListener('click', showSolution);
+
+        // Listener para el selector de dificultad
+        difficultySelect.addEventListener('change', (e) => {
+            currentDifficulty = e.target.value;
+            const levelText = difficultySelect.options[difficultySelect.selectedIndex].text;
+            displayMessage(`Nivel cambiado a ${levelText}. ¡Generando un nuevo desafío!`, 'bg-indigo-100 text-indigo-800');
+            checkButton.disabled = false;
+            generateNewTarget(); 
+        });
+
+        formulaInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkSolution();
+            }
+        });
+
+    </script>
+</body>
+</html>
